@@ -16,6 +16,8 @@ public class ContaBancariaService {
 
     @Autowired
     private ContaBancariaRepositorio repositorio;
+    @Autowired
+    private ContaBancariaRepositorio contaBancariaRepositorio;
 
 
     public ContaBancaria criarConta(String titular, double saldoInicial){
@@ -62,6 +64,17 @@ public class ContaBancariaService {
 
         conta.setSaldoInicial(saldoAtual - valorSaque);
         return repositorio.save(conta);
+    }
+
+    public void deleteConta(UUID id) {
+        ContaBancaria contaBancaria = contaBancariaRepositorio.findById(id)
+                .orElseThrow(() -> new ContaNaoEncontradoException("Conta não encontrada com o ID: " + id));
+
+        if (contaBancaria.getSaldoInicial() != 0){
+            throw new SaldoInicialException("O saldo para deletar a conta deve ser igual a zero!");
+        }
+
+        contaBancariaRepositorio.deleteById(id);
     }
 
 }

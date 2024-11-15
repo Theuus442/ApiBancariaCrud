@@ -20,6 +20,8 @@ public class UsuarioController {
 
     @Autowired
     private ContaBancariaService service;
+    @Autowired
+    private ContaBancariaService contaBancariaService;
 
     @PostMapping
     public ResponseEntity<?> criarConta(@RequestBody ContaBancaria conta) {
@@ -61,5 +63,14 @@ public class UsuarioController {
         }
     }
 
+    @DeleteMapping("{id}")
+    public ResponseEntity<?> deleteConta(@PathVariable UUID id) {
+        try{
+            contaBancariaService.deleteConta(id);
+            return ResponseEntity.ok("Conta com o id " + id + " deletada com sucesso!");
+        } catch (ContaNaoEncontradoException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
 
 }
