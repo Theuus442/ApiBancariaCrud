@@ -1,8 +1,7 @@
 package com.matheus.apibancariacrud.web.controller;
 
 import com.matheus.apibancariacrud.contas.ContaBancaria;
-import com.matheus.apibancariacrud.dto.DepositoRequest;
-import com.matheus.apibancariacrud.dto.SaqueRequest;
+import com.matheus.apibancariacrud.dto.*;
 import com.matheus.apibancariacrud.exception.ContaNaoEncontradoException;
 import com.matheus.apibancariacrud.exception.DepositoInvalidoException;
 import com.matheus.apibancariacrud.exception.SaqueInvalidoException;
@@ -11,28 +10,28 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Optional;
 import java.util.UUID;
 
 @RestController
 @RequestMapping("/contas")
 public class UsuarioController {
 
-    @Autowired
-    private ContaBancariaService service;
+
     @Autowired
     private ContaBancariaService contaBancariaService;
 
     @PostMapping
-    public ResponseEntity<?> criarConta(@RequestBody ContaBancaria conta) {
-        ContaBancaria novaConta = service.criarConta(conta.getTitular(), conta.getSaldoInicial());
-        return ResponseEntity.ok(novaConta);
+    public ResponseEntity<?> criarConta(@RequestBody ContaBancariaRequest contaRequest) {
+        ContaBancariaResponse novaContaResponse = contaBancariaService.criarConta(contaRequest);
+        return ResponseEntity.ok(novaContaResponse);
     }
+
+
 
     @GetMapping("/{id}")
     public ResponseEntity<ContaBancaria> buscarContaPorId(@PathVariable UUID id) {
         try {
-            ContaBancaria conta = service.buscarContaOuFalhar(id);
+            ContaBancaria conta = contaBancariaService.buscarContaOuFalhar(id);
             return ResponseEntity.ok(conta);
         } catch (ContaNaoEncontradoException e) {
             return ResponseEntity.notFound().build();
@@ -40,10 +39,10 @@ public class UsuarioController {
     }
 
     @PostMapping("/{id}/depositar")
-    public ResponseEntity<?> deposito(@PathVariable UUID id, @RequestBody DepositoRequest depositoRequest) {
+    public ResponseEntity<?> deposito(@PathVariable UUID id, @RequestBody OperacaoRequest request) {
         try {
-            ContaBancaria contaAtualizada = service.deposito(id, depositoRequest.getValorDeposito());
-            return ResponseEntity.ok(contaAtualizada);
+            ContaBancaria conta = contaBancariaService.deposito(id, request);
+            return ResponseEntity.ok(conta);
         } catch (DepositoInvalidoException e){
             return ResponseEntity.badRequest().body(e.getMessage());
         } catch (ContaNaoEncontradoException e) {
@@ -51,11 +50,12 @@ public class UsuarioController {
         }
     }
 
+
     @PostMapping("/{id}/saque")
-    public ResponseEntity<?> saque(@PathVariable UUID id, @RequestBody SaqueRequest saqueRequest){
-        try{
-            ContaBancaria contaAtualizada = service.saque(id, saqueRequest.getSaqueValor());
-            return ResponseEntity.ok(contaAtualizada);
+    public ResponseEntity<?> saque(@PathVariable UUID id, @RequestBody OperacaoRequest request) {
+        try {
+            ContaBancaria contaAtual = contaBancariaService.saque(id, request);
+            return ResponseEntity.ok(contaAtual);
         } catch (SaqueInvalidoException e){
             return ResponseEntity.badRequest().body(e.getMessage());
         } catch (ContaNaoEncontradoException e) {

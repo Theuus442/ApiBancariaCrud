@@ -1,5 +1,7 @@
 package com.matheus.apibancariacrud.contas;
 
+import com.matheus.apibancariacrud.exception.DepositoInvalidoException;
+import com.matheus.apibancariacrud.exception.SaqueInvalidoException;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -14,13 +16,32 @@ public class ContaBancaria {
     @GeneratedValue(strategy = GenerationType.AUTO)
     private UUID id;
     private String titular;
-    private double saldoInicial = 0.0;
+    private double saldoInicial;
 
     public ContaBancaria() {
     }
 
-    public ContaBancaria(UUID id, String titular, double saldoInicial) {
-        this.id = id;
+    public void depositar(double valor) {
+        if (valor <= 0){
+            throw new DepositoInvalidoException("O valor deve ser maior que zero!");
+        }
+        this.saldoInicial += valor;
+    }
+
+    public void sacar(double valor) {
+        if (valor <= 0){
+            throw new SaqueInvalidoException("O valor deve ser maior que zero!");
+        } if (valor > this.saldoInicial){
+            throw new SaqueInvalidoException("Saldo insuficiente para realizar o saque!");
+        }
+        this.saldoInicial -= valor;
+    }
+
+    public boolean podeDelatar(){
+        return this.saldoInicial == 0;
+    }
+
+    public ContaBancaria(String titular, double saldoInicial) {
         this.titular = titular;
         this.saldoInicial = saldoInicial;
     }

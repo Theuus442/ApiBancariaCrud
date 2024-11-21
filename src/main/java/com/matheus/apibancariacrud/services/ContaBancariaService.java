@@ -1,10 +1,14 @@
 package com.matheus.apibancariacrud.services;
 
 import com.matheus.apibancariacrud.contas.ContaBancaria;
+import com.matheus.apibancariacrud.dto.ContaBancariaRequest;
+import com.matheus.apibancariacrud.dto.ContaBancariaResponse;
+import com.matheus.apibancariacrud.dto.OperacaoRequest;
 import com.matheus.apibancariacrud.exception.ContaNaoEncontradoException;
 import com.matheus.apibancariacrud.exception.DepositoInvalidoException;
 import com.matheus.apibancariacrud.exception.SaldoInicialException;
 import com.matheus.apibancariacrud.exception.SaqueInvalidoException;
+import com.matheus.apibancariacrud.mapper.ContaBancariaMapper;
 import com.matheus.apibancariacrud.repositorio.ContaBancariaRepositorio;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -16,65 +20,43 @@ public class ContaBancariaService {
 
     @Autowired
     private ContaBancariaRepositorio repositorio;
-    @Autowired
-    private ContaBancariaRepositorio contaBancariaRepositorio;
 
 
-    public ContaBancaria criarConta(String titular, double saldoInicial){
-        if (saldoInicial < 0 || Double.isNaN(saldoInicial)){
+    public ContaBancariaResponse criarConta(ContaBancariaRequest request){
+        ContaBancaria conta = ContaBancariaMapper.toEntity(request);
+        if (conta.getSaldoInicial() < 0 || Double.isNaN(conta.getSaldoInicial())){
             throw new SaldoInicialException("O saldo inicial deve ser maior ou igual a zero!");
         }
-        ContaBancaria conta = new ContaBancaria();
-        conta.setTitular(titular);
-        conta.setSaldoInicial(saldoInicial);
+        ContaBancaria contaSalva = repositorio.save(conta);
+        return ContaBancariaMapper.toResponse(contaSalva);
 
-        return repositorio.save(conta);
     }
-
 
     public ContaBancaria buscarContaOuFalhar(UUID id) {
         return repositorio.findById(id)
                 .orElseThrow(() -> new ContaNaoEncontradoException("Conta não encontrada com ID: " + id));
     }
 
-    public ContaBancaria deposito(UUID id, double valorDeposito){
-        if (valorDeposito <= 0){
+    public ContaBancaria deposito(UUID id, OperacaoRequest request){
+        ContaBancaria conta = buscarContaOuFalhar(id);
+        if(request.getValor() <= 0){
             throw new DepositoInvalidoException("O valor deve ser maior que zero!");
         }
-        ContaBancaria conta = repositorio.findById(id)
-                .orElseThrow(() -> new ContaNaoEncontradoException("Conta não encontrada com o ID: " + id));
-
-        double saldoAtual = conta.getSaldoInicial();
-        conta.setSaldoInicial(saldoAtual + valorDeposito);
+        conta.depositar(request.getValor());
         return repositorio.save(conta);
     }
 
-    public ContaBancaria saque(UUID id, double valorSaque){
-        if (valorSaque <= 0){
-            throw new SaqueInvalidoException("O valor deve ser maior que zero!");
-        }
-
-        ContaBancaria conta = repositorio.findById(id)
-                .orElseThrow(() -> new ContaNaoEncontradoException("Conta não encontrada com o ID: " + id));
-
-        double saldoAtual = conta.getSaldoInicial();
-        if (valorSaque > saldoAtual) {
-            throw new SaqueInvalidoException("Saldo insuficiente para realizar o saque!");
-        }
-
-        conta.setSaldoInicial(saldoAtual - valorSaque);
+    public ContaBancaria saque(UUID id, OperacaoRequest request){
+        ContaBancaria conta = buscarContaOuFalhar(id);
+        conta.sacar(request.getValor());
         return repositorio.save(conta);
     }
 
     public void deleteConta(UUID id) {
-        ContaBancaria contaBancaria = contaBancariaRepositorio.findById(id)
-                .orElseThrow(() -> new ContaNaoEncontradoException("Conta não encontrada com o ID: " + id));
-
-        if (contaBancaria.getSaldoInicial() != 0){
-            throw new SaldoInicialException("O saldo para deletar a conta deve ser igual a zero!");
-        }
-
-        contaBancariaRepositorio.deleteById(id);
+        ContaBancaria conta = buscarContaOuFalhar(id);
+        if (!conta.podeDelatar()){
+        throw new SaldoInicialException("O saldo para deletar deve ser igual a zero!");}
+        repositorio.deleteById(id);
     }
 
 }
